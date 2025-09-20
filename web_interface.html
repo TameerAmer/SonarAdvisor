@@ -156,7 +156,10 @@
 
         <!-- Analysis Section -->
         <div id="analysisSection" class="section hidden">
-            <h3>🔍 Start Analysis</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>🔍 Start Analysis</h3>
+                <button class="button secondary" onclick="logout()">Logout</button>
+            </div>
             <div class="form-group">
                 <label for="projectKey">SonarQube Project Key:</label>
                 <input type="text" id="projectKey" placeholder="e.g., my-java-project">
@@ -167,7 +170,7 @@
         </div>
 
         <!-- View Report Section -->
-        <div id="analysisSection" class="section">
+        <div id="reportSection" class="section hidden">
             <h3>📊 View Report by ID</h3>
             <div class="form-group">
                 <label for="reportId">Report ID:</label>
@@ -188,13 +191,47 @@
         let authToken = localStorage.getItem('authToken') || '';
 
         // Page initialization
-        window.onload = function() {
+        window.onload = async function() {
             if (authToken) {
-                document.getElementById('authSection').classList.add('hidden');
-                document.getElementById('registerSection').classList.add('hidden');
-                document.getElementById('analysisSection').classList.remove('hidden');
+                // Test if the token is still valid
+                try {
+                    const response = await fetch(`${API_BASE}/api/v1/analysis/requests`, {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    });
+                    
+                    if (response.ok) {
+                        // Token is valid, show authenticated sections
+                        showAuthenticatedSections();
+                    } else {
+                        // Token is invalid, clear it and show login
+                        authToken = '';
+                        localStorage.removeItem('authToken');
+                        showLoginSection();
+                    }
+                } catch {
+                    // Network error, clear token and show login
+                    authToken = '';
+                    localStorage.removeItem('authToken');
+                    showLoginSection();
+                }
+            } else {
+                showLoginSection();
             }
         };
+
+        function showLoginSection() {
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('registerSection').classList.add('hidden');
+            document.getElementById('analysisSection').classList.add('hidden');
+            document.getElementById('reportSection').classList.add('hidden');
+        }
+
+        function showAuthenticatedSections() {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('registerSection').classList.add('hidden');
+            document.getElementById('analysisSection').classList.remove('hidden');
+            document.getElementById('reportSection').classList.remove('hidden');
+        }
 
         function showRegister() {
             document.getElementById('authSection').classList.add('hidden');
@@ -245,9 +282,7 @@
                     const data = await response.json();
                     authToken = data.access_token;
                     localStorage.setItem('authToken', authToken);
-                    document.getElementById('authSection').classList.add('hidden');
-                    document.getElementById('registerSection').classList.add('hidden');
-                    document.getElementById('analysisSection').classList.remove('hidden');
+                    showAuthenticatedSections();
                     showResult('Login successful! You can now analyze projects.');
                 } else {
                     const error = await response.json();
@@ -256,6 +291,13 @@
             } catch (err) {
                 alert('Login failed: ' + err.message);
             }
+        }
+
+        function logout() {
+            authToken = '';
+            localStorage.removeItem('authToken');
+            showLoginSection();
+            showResult('Logged out successfully.');
         }
 
         async function startAnalysis() {
@@ -281,6 +323,9 @@
                     const data = await response.json();
                     showResult(`Analysis started for project "${projectKey}". Request ID: ${data.id}. Monitoring progress...`);
                     monitorAnalysis(data.id);
+                } else if (response.status === 401) {
+                    showResult('Authentication expired. Please login again.');
+                    logout();
                 } else {
                     const error = await response.json();
                     showResult('Analysis failed: ' + (error.detail || 'Unknown error'));
@@ -364,6 +409,9 @@
                     const data = await response.json();
                     const projects = data.projects.map(p => `<li><strong>${p.key}</strong> - ${p.name}</li>`).join('');
                     showResult(`<h4>Available Projects:</h4><ul>${projects}</ul>`);
+                } else if (response.status === 401) {
+                    showResult('Authentication expired. Please login again.');
+                    logout();
                 } else {
                     const error = await response.json();
                     showResult('Failed to load projects: ' + error.detail);
