@@ -15,6 +15,7 @@ class AIReport(Base):
     top_recurring_problems = Column(Text)  # JSON string of top recurring problems
     suggested_improvements = Column(Text)  # JSON string of suggestions
     prioritized_issues = Column(Text)  # JSON string of prioritized critical issues
+    enhanced_analysis = Column(Text)  # JSON string of enhanced file-focused analysis
     
     # Issue counts
     total_issues = Column(Integer)

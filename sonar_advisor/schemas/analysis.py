@@ -42,12 +42,14 @@ class TopProblem(BaseModel):
     description: str
     frequency: int
     impact: str  # high, medium, low
+    affected_files: List[str] = []
 
 
 class SuggestedImprovement(BaseModel):
     category: str
     suggestion: str
     priority: str  # high, medium, low
+    affected_files: List[str] = []
 
 
 class PrioritizedIssue(BaseModel):
@@ -55,6 +57,7 @@ class PrioritizedIssue(BaseModel):
     message: str
     severity: str
     files_affected: int
+    affected_files: List[str] = []
 
 
 class AIReportResponse(BaseModel):
