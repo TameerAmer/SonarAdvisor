@@ -1,0 +1,229 @@
+{
+  "info": {
+    "name": "SonarQube AI Advisor API",
+    "description": "Complete API collection for SonarQube AI Advisor microservice",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"tameer\",\n  \"email\": \"tameer@example.com\",\n  \"password\": \"mypassword\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', response.access_token);",
+                  "    console.log('Token saved:', response.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "tameer"
+                },
+                {
+                  "key": "password",
+                  "value": "mypassword"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analysis",
+      "item": [
+        {
+          "name": "List SonarQube Projects",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/analysis/sonarqube/projects",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analysis", "sonarqube", "projects"]
+            }
+          }
+        },
+        {
+          "name": "Start Project Analysis",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_key\": \"your-project-key\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/analysis/analyze",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analysis", "analyze"]
+            }
+          }
+        },
+        {
+          "name": "Get Analysis Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/analysis/status/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analysis", "status", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Analysis Results",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/analysis/requests/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analysis", "requests", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Analysis HTML Report",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/analysis/requests/1/report/html",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analysis", "requests", "1", "report", "html"]
+            }
+          }
+        },
+        {
+          "name": "Get Analysis Markdown Report",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/analysis/requests/1/report/markdown",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analysis", "requests", "1", "report", "markdown"]
+            }
+          }
+        },
+        {
+          "name": "List User Analysis Requests",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/analysis/requests",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analysis", "requests"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "API Root",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
