@@ -321,8 +321,18 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    showResult(`Analysis started for project "${projectKey}". Request ID: ${data.id}. Monitoring progress...`);
-                    monitorAnalysis(data.id);
+                    const startTime = new Date().toLocaleString();
+                    showResult(`
+                        <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; border-left: 4px solid #28a745;">
+                            <h4>✅ Analysis Started Successfully</h4>
+                            <p><strong>Project:</strong> ${projectKey}</p>
+                            <p><strong>Request ID:</strong> ${data.id}</p>
+                            <p><strong>Started at:</strong> ${startTime}</p>
+                            <p><strong>Status:</strong> <span class="status pending">PENDING</span></p>
+                            <p><em>Monitoring progress... This typically takes 2-5 minutes.</em></p>
+                        </div>
+                    `);
+                    monitorAnalysis(data.id, projectKey, startTime);
                 } else if (response.status === 401) {
                     showResult('Authentication expired. Please login again.');
                     logout();
@@ -335,7 +345,7 @@
             }
         }
 
-        async function monitorAnalysis(requestId) {
+        async function monitorAnalysis(requestId, projectKey, startTime) {
             const checkStatus = async () => {
                 try {
                     const response = await fetch(`${API_BASE}/api/v1/analysis/status/${requestId}`, {
@@ -344,12 +354,23 @@
 
                     if (response.ok) {
                         const data = await response.json();
-                        updateStatus(data.status, requestId);
+                        updateStatus(data.status, requestId, projectKey, startTime);
                         
                         if (data.status === 'completed') {
-                            showAnalysisResults(requestId);
+                            showAnalysisResults(requestId, projectKey, startTime);
                         } else if (data.status === 'failed') {
-                            showResult(`Analysis failed for request ${requestId}. Please check server logs.`);
+                            const currentTime = new Date().toLocaleString();
+                            showResult(`
+                                <div style="background: #f8d7da; padding: 15px; border-radius: 8px; border-left: 4px solid #dc3545;">
+                                    <h4>❌ Analysis Failed</h4>
+                                    <p><strong>Project:</strong> ${projectKey}</p>
+                                    <p><strong>Request ID:</strong> ${requestId}</p>
+                                    <p><strong>Started at:</strong> ${startTime}</p>
+                                    <p><strong>Failed at:</strong> ${currentTime}</p>
+                                    <p><strong>Status:</strong> <span class="status failed">FAILED</span></p>
+                                    <p>Please check server logs for details.</p>
+                                </div>
+                            `);
                         } else if (data.status === 'processing' || data.status === 'pending') {
                             setTimeout(checkStatus, 5000); // Check every 5 seconds
                         }
@@ -364,13 +385,44 @@
             checkStatus();
         }
 
-        function updateStatus(status, requestId) {
-            const statusHtml = `<div class="status ${status}">Status: ${status.toUpperCase()}</div>`;
-            showResult(statusHtml + `<p>Request ID: ${requestId}</p>`);
+        function updateStatus(status, requestId, projectKey, startTime) {
+            const currentTime = new Date().toLocaleString();
+            // Fix duration calculation by using proper date parsing
+            const startDate = new Date(startTime.replace(/(\d+)\.(\d+)\.(\d+),/, '$3-$2-$1'));
+            const duration = Math.round((new Date() - startDate) / 1000);
+            const minutes = Math.floor(duration / 60);
+            const seconds = duration % 60;
+            const durationText = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+            
+            showResult(`
+                <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">
+                    <h4>⏳ Analysis In Progress</h4>
+                    <p><strong>Project:</strong> ${projectKey}</p>
+                    <p><strong>Request ID:</strong> ${requestId}</p>
+                    <p><strong>Started at:</strong> ${startTime}</p>
+                    <p><strong>Current time:</strong> ${currentTime}</p>
+                    <p><strong>Duration:</strong> ${durationText}</p>
+                    <p><strong>Status:</strong> <span class="status ${status}">${status.toUpperCase()}</span></p>
+                    <div style="margin: 10px 0;">
+                        <div style="background: #e9ecef; height: 8px; border-radius: 4px; overflow: hidden;">
+                            <div style="width: ${status === 'pending' ? '25%' : status === 'processing' ? '75%' : '100%'}; height: 100%; background: #667eea; transition: width 0.3s ease;"></div>
+                        </div>
+                    </div>
+                    <p><em>Please wait... Typical analysis takes 2-5 minutes.</em></p>
+                </div>
+            `);
         }
 
-        async function showAnalysisResults(requestId) {
+        async function showAnalysisResults(requestId, projectKey, startTime) {
             try {
+                const completedTime = new Date().toLocaleString();
+                // Fix duration calculation by using proper date parsing
+                const startDate = new Date(startTime.replace(/(\d+)\.(\d+)\.(\d+),/, '$3-$2-$1'));
+                const totalDuration = Math.round((new Date() - startDate) / 1000);
+                const minutes = Math.floor(totalDuration / 60);
+                const seconds = totalDuration % 60;
+                const durationText = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+
                 const htmlResponse = await fetch(`${API_BASE}/api/v1/analysis/requests/${requestId}/report/html`, {
                     headers: { 
                         'Authorization': `Bearer ${authToken}`,
@@ -387,9 +439,20 @@
                     newWindow.document.close();
                     
                     showResult(`
-                        <div class="status completed">✅ Analysis Completed Successfully!</div>
-                        <p>📊 <a href="${API_BASE}/api/v1/analysis/requests/${requestId}/report/html" target="_blank" class="button">View HTML Report</a></p>
-                        <p>📝 <a href="${API_BASE}/api/v1/analysis/requests/${requestId}/report/markdown" target="_blank" class="button secondary">Download Markdown</a></p>
+                        <div style="background: #d4edda; padding: 15px; border-radius: 8px; border-left: 4px solid #28a745;">
+                            <h4>✅ Analysis Completed Successfully!</h4>
+                            <p><strong>Project:</strong> ${projectKey}</p>
+                            <p><strong>Request ID:</strong> ${requestId}</p>
+                            <p><strong>Started at:</strong> ${startTime}</p>
+                            <p><strong>Completed at:</strong> ${completedTime}</p>
+                            <p><strong>Total duration:</strong> ${durationText}</p>
+                            <p><strong>Status:</strong> <span class="status completed">COMPLETED</span></p>
+                            <div style="margin: 15px 0;">
+                                <p><strong>📊 Report Links:</strong></p>
+                                <a href="${API_BASE}/api/v1/analysis/requests/${requestId}/report/html" target="_blank" class="button">View HTML Report</a>
+                                <a href="${API_BASE}/api/v1/analysis/requests/${requestId}/report/markdown" target="_blank" class="button secondary">Download Markdown</a>
+                            </div>
+                        </div>
                     `);
                 } else {
                     showResult(`❌ Failed to load report: ${htmlResponse.status}`);
@@ -429,17 +492,44 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    const analyses = data.map(a => 
-                        `<li>
-                            <strong>${a.project_key}</strong> - 
-                            <span class="status ${a.status}">${a.status}</span>
-                            ${a.status === 'completed' ? 
-                                `<button class="button" style="font-size: 0.8em; padding: 4px 8px;" onclick="viewReportById(${a.id})">View Report</button>` : 
-                                ''
-                            }
-                        </li>`
-                    ).join('');
-                    showResult(`<h4>My Analyses:</h4><ul>${analyses}</ul>`);
+                    console.log('Analysis data:', data); // Debug: check what fields are available
+                    
+                    const analyses = data.map(a => {
+                        // Fix timezone issue by creating proper local date
+                        const createdDate = new Date(a.created_at + 'Z').toLocaleString(); // Add Z for UTC, then convert to local
+                        // Try multiple possible completion date fields
+                        const completionDate = a.updated_at || a.completed_at || a.finished_at;
+                        const completedDate = completionDate ? new Date(completionDate + 'Z').toLocaleString() : null;
+                        const statusClass = a.status.toLowerCase();
+                        
+                        return `
+                            <li style="margin: 10px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong>📊 ${a.project_key}</strong><br>
+                                        <small><strong>ID:</strong> ${a.id} | <strong>Created:</strong> ${createdDate}</small><br>
+                                        ${a.status === 'completed' && completedDate ? 
+                                            `<small><strong>Completed:</strong> ${completedDate}</small><br>` : 
+                                            a.status === 'completed' ? 
+                                            `<small><strong>Status:</strong> Completed (completion time not available)</small><br>` :
+                                            ''
+                                        }
+                                        <span class="status ${statusClass}">${a.status.toUpperCase()}</span>
+                                    </div>
+                                    <div>
+                                        ${a.status === 'completed' ? 
+                                            `<button class="button" style="font-size: 0.8em; padding: 8px 12px;" onclick="viewReportById(${a.id})">View Report</button>` : 
+                                            ''
+                                        }
+                                    </div>
+                                </div>
+                            </li>
+                        `;
+                    }).join('');
+                    
+                    showResult(`
+                        <ul style="list-style: none; padding: 0;">${analyses}</ul>
+                    `, true); // Pass true to indicate this is analysis history
                 } else {
                     const error = await response.json();
                     showResult('Failed to load analyses: ' + error.detail);
@@ -488,9 +578,16 @@
             }
         }
 
-        function showResult(content) {
+        function showResult(content, isAnalysisHistory = false) {
             document.getElementById('resultContent').innerHTML = content;
             document.getElementById('resultsSection').classList.remove('hidden');
+            // Update the results section title based on content type
+            const titleEl = document.querySelector('#resultsSection h3');
+            if (isAnalysisHistory) {
+                titleEl.innerHTML = '📋 My Analysis History';
+            } else {
+                titleEl.innerHTML = '📋 Results';
+            }
         }
     </script>
 </body>
